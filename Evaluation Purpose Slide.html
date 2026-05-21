@@ -261,7 +261,7 @@ html, body {
         crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
         crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundled.js"
+<script src="https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundled.js"
         crossorigin="anonymous"></script>
 </head>
 <body>
@@ -539,23 +539,65 @@ function EvalPurposeSlide() {
 function ExportToolbar() {
   const [busy, setBusy] = useState(null);
 
-  const capture = () => {
-    const el = window.__slideEl || document.querySelector('.ws');
-    return html2canvas(el, {
-      width: 1920,
-      height: 1080,
-      scale: 1.5,          // 2880×1620 — crisp without being huge
-      useCORS: true,
-      allowTaint: false,
-      backgroundColor: '#FBFAF7',
-      logging: false,
+  const capture = async () => {
+    // Wait for custom fonts before rendering
+    await document.fonts.ready;
+
+    const source = window.__slideEl || document.querySelector('.ws');
+    const clone = source.cloneNode(true);
+
+    // Strip contentEditable — it causes html2canvas to double-render text
+    clone.querySelectorAll('[contenteditable]').forEach(el => {
+      el.removeAttribute('contenteditable');
     });
+
+    // CSS :empty::before placeholders don't render on canvas; convert to real text
+    clone.querySelectorAll('[data-placeholder]').forEach(el => {
+      if (!el.textContent.trim()) {
+        el.textContent = el.getAttribute('data-placeholder') || '';
+        el.style.color = '#B7B0A2';
+        el.style.fontStyle = 'italic';
+        el.style.fontWeight = '400';
+      }
+      el.removeAttribute('data-placeholder');
+    });
+
+    // Mount clone in a clean fixed container — no parent CSS transform to confuse coordinates
+    const wrapper = document.createElement('div');
+    Object.assign(wrapper.style, {
+      position: 'fixed', top: '0', left: '0',
+      width: '1920px', height: '1080px',
+      zIndex: '99999', overflow: 'hidden', pointerEvents: 'none',
+    });
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
+
+    // Two rAF ticks so the browser lays out the clone before capture
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+    try {
+      return await html2canvas(wrapper, {
+        width: 1920, height: 1080,
+        scale: 1.5,
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: '#FBFAF7',
+        logging: false,
+        x: 0, y: 0,
+        scrollX: 0, scrollY: 0,
+      });
+    } finally {
+      document.body.removeChild(wrapper);
+    }
   };
 
   const run = (key, fn) => async () => {
     setBusy(key);
     try { await fn(); }
-    catch (err) { console.error('Export failed:', err); alert('Export failed — see console for details.'); }
+    catch (err) {
+      console.error(`[Export ${key.toUpperCase()}]`, err);
+      alert(`Export failed: ${err.message || err}\n\nOpen the browser console (F12) for details.`);
+    }
     finally { setBusy(null); }
   };
 
@@ -570,18 +612,25 @@ function ExportToolbar() {
   const downloadPDF = run('pdf', async () => {
     const canvas = await capture();
     const { jsPDF } = window.jspdf;
-    // Standard widescreen 16:9 slide dimensions (13.33" × 7.5")
     const pdf = new jsPDF({ orientation: 'landscape', unit: 'in', format: [13.333, 7.5] });
     pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 13.333, 7.5);
     pdf.save('Evaluation Purpose Slide.pdf');
   });
 
   const downloadPPTX = run('pptx', async () => {
+    const PPTX = window.PptxGenJS;
+    if (typeof PPTX === 'undefined') {
+      throw new Error('PptxGenJS library did not load. Check your network connection and try refreshing.');
+    }
     const canvas = await capture();
-    const pres = new PptxGenJS();
-    pres.layout = 'LAYOUT_WIDE';   // 13.33" × 7.5" — matches PowerPoint widescreen
+    const pres = new PPTX();
+    pres.layout = 'LAYOUT_WIDE'; // 13.33" × 7.5" widescreen
     const slide = pres.addSlide();
-    slide.addImage({ data: canvas.toDataURL('image/png'), x: 0, y: 0, w: '100%', h: '100%' });
+    slide.addImage({
+      data: canvas.toDataURL('image/png'),
+      x: 0, y: 0,
+      w: 13.33, h: 7.5,
+    });
     await pres.writeFile({ fileName: 'Evaluation Purpose Slide.pptx' });
   });
 
