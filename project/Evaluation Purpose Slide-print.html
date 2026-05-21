@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Evaluation Purpose · LLO 8230 (Print)</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="styles.css" />
+
+<style>
+  html, body {
+    margin: 0; padding: 0;
+    background: #1c1c1c;
+    font-family: "Inter Tight", -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  /* Letterboxed on-screen preview so a person opening this file before
+     printing can see what they'll get. */
+  #stage {
+    min-height: 100vh;
+    display: grid; place-items: center;
+    padding: 24px;
+  }
+  #slide-frame {
+    width: 1920px; height: 1080px;
+    background: #FBFAF7;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.45), 0 6px 18px rgba(0,0,0,0.25);
+    transform-origin: center top;
+    position: relative;
+  }
+  #app { width: 100%; height: 100%; }
+
+  /* Hide the floating Export button (the print dialog is doing the job). */
+  .ws-export { display: none !important; }
+
+  /* ── PRINT ─────────────────────────────────────────────────────────
+     Page is sized to the slide's native aspect (1920×1080 → 16:9).
+     We use inches so browsers honor it consistently; 16in × 9in keeps
+     the exact 16:9 ratio with zero scale-induced reflow. */
+  @page { size: 16in 9in landscape; margin: 0; }
+
+  @media print {
+    html, body {
+      background: #fff !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    #stage {
+      min-height: 0 !important;
+      padding: 0 !important;
+      display: block !important;
+    }
+    #slide-frame {
+      /* Reset the on-screen scale and snap to the page size. */
+      width: 16in !important;
+      height: 9in !important;
+      transform: none !important;
+      box-shadow: none !important;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    /* The on-screen slide is authored at 1920px × 1080px. Scale the
+       interior down to the 16in × 9in page (1in == 96 CSS px → 1536×864).
+       That's the same uniform scale (0.8) horizontally and vertically. */
+    #app {
+      width: 1920px !important;
+      height: 1080px !important;
+      transform: scale(calc(16 * 96 / 1920));   /* 0.8 */
+      transform-origin: top left;
+    }
+  }
+</style>
+
+<!-- React + Babel (pinned versions, integrity hashes) -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+
+<div id="stage">
+  <div id="slide-frame">
+    <div id="app"></div>
+  </div>
+</div>
+
+<script type="text/babel" src="worksheet-core.jsx"></script>
+<script type="text/babel" src="variant-b.jsx"></script>
+
+<script type="text/babel">
+  function App() {
+    return <window.VariantB />;
+  }
+  const root = ReactDOM.createRoot(document.getElementById("app"));
+  root.render(<App />);
+
+  // Scale the on-screen preview down so the 1920px slide fits the viewport.
+  // Printing overrides this via @media print → static 16in × 9in page.
+  function fitPreview() {
+    const frame = document.getElementById('slide-frame');
+    if (!frame) return;
+    const pad = 48;
+    const vw = window.innerWidth - pad;
+    const vh = window.innerHeight - pad;
+    const s = Math.min(vw / 1920, vh / 1080, 1);
+    frame.style.transform = `scale(${s})`;
+  }
+  window.addEventListener('resize', fitPreview);
+  fitPreview();
+
+  // Wait for fonts + a frame for React to commit, then trigger print.
+  (async function autoPrint() {
+    try { await document.fonts.ready; } catch (_) {}
+    await new Promise(r => setTimeout(r, 500));
+    // Reset preview transform so the print snapshot uses our @media print rules.
+    const frame = document.getElementById('slide-frame');
+    if (frame) frame.style.transform = '';
+    window.print();
+  })();
+</script>
+
+</body>
+</html>
