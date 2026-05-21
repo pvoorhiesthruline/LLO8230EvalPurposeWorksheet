@@ -1,0 +1,642 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Evaluation Purpose · LLO 8230</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+
+<style>
+/* ── Brand tokens ─────────────────────────────────────────────────────── */
+:root {
+  --vu-black:  #1C1C1C;
+  --vu-ink:    #2A2825;
+  --vu-cream:  #F5F3EF;
+  --vu-paper:  #FBFAF7;
+  --vu-sand:   #E0D5C0;
+  --vu-gold:   #CFAE70;
+  --vu-gold-d: #B49248;
+  --vu-oak:    #946E24;
+  --vu-rule:   #D8D2C5;
+  --vu-muted:  #6F6A60;
+  --serif: "Source Serif 4", "Source Serif Pro", Georgia, serif;
+  --sans:  "Inter Tight", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mono:  "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+
+/* ── Shell ────────────────────────────────────────────────────────────── */
+html, body {
+  margin: 0; padding: 0;
+  background: #1c1c1c;
+  overflow: hidden;
+  height: 100%;
+  font-family: var(--sans);
+}
+
+/* Letterbox: 1920×1080 slide centred and scaled to fit any viewport */
+#stage {
+  position: fixed; inset: 0;
+  display: grid; place-items: center;
+}
+#slide-frame {
+  width: 1920px; height: 1080px;
+  transform-origin: center center;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.45), 0 6px 18px rgba(0,0,0,0.25);
+  background: var(--vu-paper);
+  position: relative;
+}
+#app { width: 100%; height: 100%; }
+
+/* ── Worksheet base ───────────────────────────────────────────────────── */
+.ws {
+  font-family: var(--sans);
+  color: var(--vu-ink);
+  background: var(--vu-paper);
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%; height: 100%;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01","ss02","kern";
+}
+.ws * { box-sizing: border-box; }
+
+/* ── Editable chip (free-text pill) ──────────────────────────────────── */
+.chip {
+  display: inline-flex; align-items: center;
+  min-width: 120px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: transparent;
+  border: 1.5px solid var(--vu-ink);
+  color: var(--vu-ink);
+  font-family: var(--sans);
+  font-size: 18px; font-weight: 500;
+  line-height: 1.2; letter-spacing: -0.01em;
+  cursor: text; outline: none;
+  transition: border-color .14s, background .14s, box-shadow .14s;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 100%;
+}
+.chip:hover { border-color: var(--vu-sand); background: rgba(207,174,112,0.06); }
+.chip:focus {
+  border-color: var(--vu-gold-d); background: #fff;
+  box-shadow: 0 0 0 3px rgba(180,146,72,0.15);
+  white-space: normal; overflow: visible; text-overflow: clip;
+}
+.chip:empty::before {
+  content: attr(data-placeholder);
+  color: #B7B0A2; font-style: italic; font-weight: 400;
+}
+
+/* ── Sentence blank ───────────────────────────────────────────────────── */
+.blank {
+  display: inline-block;
+  min-width: 240px;
+  padding: 2px 8px 4px;
+  margin: 0 4px;
+  border-bottom: 1.5px solid var(--vu-ink);
+  color: var(--vu-ink); font-weight: 600;
+  cursor: text; outline: none;
+  transition: border-color .14s, background .14s;
+}
+.blank:hover { background: rgba(207,174,112,0.08); }
+.blank:focus { border-bottom-color: var(--vu-gold-d); background: rgba(207,174,112,0.12); }
+.blank:empty::before {
+  content: attr(data-placeholder);
+  color: #B7B0A2; font-style: italic; font-weight: 400;
+}
+
+/* ── Category chips (toggle buttons) ─────────────────────────────────── */
+.cat-group { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.cat-chip {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 11px 18px 11px 14px;
+  border-radius: 999px;
+  background: transparent;
+  border: 1.5px solid var(--vu-ink);
+  color: var(--vu-ink);
+  font-family: var(--sans);
+  font-size: 16px; font-weight: 500; letter-spacing: -0.005em; line-height: 1.2;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s, transform .12s;
+  -webkit-user-select: none; user-select: none;
+}
+.cat-chip:hover  { background: rgba(180,146,72,0.10); transform: translateY(-1px); }
+.cat-chip:focus  { outline: none; box-shadow: 0 0 0 3px rgba(180,146,72,0.25); }
+
+.cat-chip__dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 1.5px solid var(--vu-ink); background: transparent;
+  flex: 0 0 auto;
+  transition: background .15s, border-color .15s, box-shadow .15s;
+}
+.cat-chip.is-active { background: var(--vu-black); border-color: var(--vu-black); color: var(--vu-cream); }
+.cat-chip.is-active .cat-chip__dot {
+  background: var(--vu-gold); border-color: var(--vu-gold);
+  box-shadow: 0 0 0 2px rgba(207,174,112,0.30);
+}
+
+.cat-chip__tip {
+  position: absolute; bottom: calc(100% + 10px); left: 0;
+  width: 280px; padding: 10px 12px;
+  background: var(--vu-black); color: var(--vu-cream);
+  font-family: var(--sans); font-weight: 400; font-size: 12.5px; line-height: 1.45;
+  border-radius: 8px; box-shadow: 0 12px 28px rgba(28,28,28,0.25);
+  opacity: 0; pointer-events: none;
+  transform: translateY(4px);
+  transition: opacity .14s, transform .14s;
+  white-space: normal; z-index: 5;
+}
+.cat-chip__tip::after {
+  content: ""; position: absolute; top: 100%; left: 20px;
+  border: 6px solid transparent; border-top-color: var(--vu-black);
+}
+.cat-chip:hover .cat-chip__tip,
+.cat-chip:focus .cat-chip__tip { opacity: 1; transform: translateY(0); }
+
+/* ── Editable chip list ───────────────────────────────────────────────── */
+.chip-list { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+.chip-wrap { position: relative; display: inline-flex; }
+
+.chip-remove {
+  position: absolute; top: -7px; right: -7px;
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 2px solid var(--vu-paper);
+  background: var(--vu-black); color: var(--vu-cream);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; padding: 0;
+  opacity: 0; pointer-events: none;
+  transition: opacity .12s, transform .12s, background .12s;
+  z-index: 2;
+}
+.chip-wrap:hover .chip-remove,
+.chip-wrap:focus-within .chip-remove { opacity: 1; pointer-events: auto; }
+.chip-remove:hover { background: var(--vu-oak); transform: scale(1.12); }
+
+.chip-add {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 16px 9px 12px; border-radius: 999px;
+  background: transparent;
+  border: 1.5px dashed var(--vu-rule);
+  color: var(--vu-muted);
+  font-family: var(--sans); font-size: 15px; font-weight: 500;
+  letter-spacing: -0.005em; line-height: 1.2; cursor: pointer;
+  transition: border-color .14s, color .14s, background .14s, border-style .14s;
+}
+.chip-add__plus {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: rgba(207,174,112,0.18); color: var(--vu-oak);
+  font-weight: 700; font-size: 15px; line-height: 1;
+  transition: background .14s, color .14s;
+}
+.chip-add:hover {
+  border-style: solid; border-color: var(--vu-gold-d);
+  color: var(--vu-ink); background: rgba(207,174,112,0.08);
+}
+.chip-add:hover .chip-add__plus { background: var(--vu-gold-d); color: var(--vu-cream); }
+.chip-add:focus { outline: none; box-shadow: 0 0 0 3px rgba(180,146,72,0.20); }
+
+/* ── Export button ────────────────────────────────────────────────────── */
+.ws-export {
+  position: absolute; top: 18px; right: 18px; z-index: 50;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 14px;
+  background: var(--vu-black); color: var(--vu-cream);
+  border: none; border-radius: 999px;
+  font-family: var(--sans); font-size: 13px; font-weight: 600; letter-spacing: 0.02em;
+  cursor: pointer; box-shadow: 0 6px 20px rgba(28,28,28,0.18);
+  transition: transform .14s, box-shadow .14s;
+}
+.ws-export:hover { transform: translateY(-1px); box-shadow: 0 10px 26px rgba(28,28,28,0.24); }
+.ws-export svg { width: 14px; height: 14px; }
+
+/* ── Print ────────────────────────────────────────────────────────────── */
+@media print {
+  @page { margin: 0; }
+  html, body { background: white !important; margin: 0; padding: 0; overflow: visible !important; }
+  #stage { position: static !important; display: block !important; }
+  #slide-frame { transform: none !important; box-shadow: none !important; width: 100% !important; height: 100% !important; }
+  body * { visibility: hidden !important; }
+  .print-target, .print-target * { visibility: visible !important; }
+  .ws-export { display: none !important; }
+  .print-target {
+    position: absolute !important; inset: 0 !important;
+    transform: none !important; width: 100% !important; height: 100% !important;
+    box-shadow: none !important;
+  }
+}
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+
+<div id="stage">
+  <div id="slide-frame">
+    <div id="app"></div>
+  </div>
+</div>
+
+<!-- ── Shared worksheet core ──────────────────────────────────────────── -->
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+const PURPOSE_CATEGORIES = [
+  { id: "needs",    label: "Needs assessment",
+    desc: "The gap between current conditions and desired outcomes. Answers 'what is' v 'what should be'." },
+  { id: "process",  label: "Process evaluation",
+    desc: "How a program is operating. Supports decisions about changing or improving program delivery." },
+  { id: "outcome",  label: "Outcome evaluation",
+    desc: "Whether a program's goals are being met — short-term results (changes in knowledge, skills, behavior). Supports similar decisions as process evaluation." },
+  { id: "impact",   label: "Impact evaluation",
+    desc: "Whether long-term, broad changes are happening as a result of a program. Supports high-stakes decisions like continuing or scaling." },
+  { id: "economic", label: "Economic evaluation",
+    desc: "Assessment of costs associated with a need or a program. Supports decisions about cost effectiveness and cost-benefit analysis." },
+];
+
+const DEFAULTS = {
+  purposeCategories: [],
+  purposeSentence: "",
+  users: ["", "", ""],
+  uses:  ["", "", ""],
+  aim:        "",
+  ultimately: "",
+};
+
+function useWorksheetState(variantKey) {
+  const storageKey = `ws.evalPurpose.${variantKey}`;
+  const [state, setState] = useState(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) return { ...DEFAULTS, ...JSON.parse(raw) };
+    } catch (_) {}
+    return { ...DEFAULTS };
+  });
+  const set = useCallback((patch) => {
+    setState(prev => {
+      const next = typeof patch === "function" ? patch(prev) : { ...prev, ...patch };
+      try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch (_) {}
+      return next;
+    });
+  }, [storageKey]);
+  return [state, set];
+}
+
+function Editable({ value, onChange, className, placeholder, style, tag = "span", multiline = false }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (el.textContent !== value) el.textContent = value || "";
+  }, [value]);
+
+  const onKeyDown = (e) => {
+    if (!multiline && e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
+  };
+  const Tag = tag;
+  return (
+    <Tag
+      ref={ref}
+      contentEditable
+      suppressContentEditableWarning
+      spellCheck={false}
+      onInput={(e) => onChange(e.currentTarget.textContent)}
+      onKeyDown={onKeyDown}
+      className={className}
+      style={style}
+      data-placeholder={placeholder}
+    />
+  );
+}
+
+function Chip({ value, onChange, placeholder = "type…", style }) {
+  return <Editable value={value} onChange={onChange} className="chip" placeholder={placeholder} style={style} />;
+}
+
+function Blank({ value, onChange, placeholder = "fill in…", minWidth = 240, style }) {
+  return (
+    <Editable value={value} onChange={onChange} className="blank"
+              placeholder={placeholder} style={{ minWidth, ...style }} />
+  );
+}
+
+function EditableChipList({ items, onChange, placeholder = (i) => `item ${i + 1}`,
+                             chipStyle, addLabel = "Add", minItems = 1, maxItems = 8 }) {
+  const update = (i, v) => onChange(items.map((x, idx) => idx === i ? v : x));
+  const remove = (i)    => onChange(items.filter((_, idx) => idx !== i));
+  const add    = ()     => onChange([...items, ""]);
+  return (
+    <div className="chip-list">
+      {items.map((v, i) => (
+        <span key={i} className="chip-wrap">
+          <Chip value={v} placeholder={placeholder(i)} style={chipStyle} onChange={(x) => update(i, x)} />
+          {items.length > minItems && (
+            <button type="button" className="chip-remove" onClick={() => remove(i)}
+                    aria-label={`Remove ${v || "item"}`} title="Remove">
+              <svg viewBox="0 0 10 10" width="10" height="10" aria-hidden="true">
+                <path d="M2 2 L8 8 M8 2 L2 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            </button>
+          )}
+        </span>
+      ))}
+      {items.length < maxItems && (
+        <button type="button" className="chip-add" onClick={add} title="Add a new item">
+          <span className="chip-add__plus" aria-hidden="true">+</span>
+          <span>{addLabel}</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+function CategoryGroup({ selected, onToggle }) {
+  return (
+    <div className="cat-group">
+      {PURPOSE_CATEGORIES.map(cat => {
+        const active = selected.includes(cat.id);
+        return (
+          <button key={cat.id} type="button"
+                  className={"cat-chip" + (active ? " is-active" : "")}
+                  aria-pressed={active} onClick={() => onToggle(cat.id)} title={cat.desc}>
+            <span className="cat-chip__dot" aria-hidden="true"></span>
+            <span className="cat-chip__label">{cat.label}</span>
+            <span className="cat-chip__tip" role="tooltip">{cat.desc}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function ExportButton({ getTarget, pageClass = "print-slide", label = "Export PDF" }) {
+  const onClick = () => {
+    const target = getTarget();
+    if (!target) return;
+    target.classList.add("print-target");
+    document.body.classList.add(pageClass);
+    requestAnimationFrame(() => {
+      window.print();
+      setTimeout(() => {
+        target.classList.remove("print-target");
+        document.body.classList.remove(pageClass);
+      }, 200);
+    });
+  };
+  return (
+    <button className="ws-export" onClick={onClick} title="Print or save as PDF">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6"
+           strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 3h8v4H4z"/><path d="M4 11h8v3H4z"/><path d="M2 7h12v4H2z"/>
+        <circle cx="11.5" cy="9" r=".6" fill="currentColor" stroke="none"/>
+      </svg>
+      {label}
+    </button>
+  );
+}
+
+const OPERATING_PRINCIPLES = (
+  <>
+    Consider establishing <b>operating principles</b> to guide the evaluation.
+    The principle of <b>utility</b> ensures that the evaluation prioritizes findings that can directly guide
+    next steps and that the evaluation sponsors are ready and willing to champion the evaluation process.
+    {" "}<b>Feasibility</b> ensures that the evaluation can be completed within a reasonable timeframe and
+    that appropriate resources are available (or can be made available). Other principles may be agreed
+    upon with stakeholders.
+  </>
+);
+
+const INTRO_COPY = "The evaluation purpose is a brief paragraph that sets the frame for everything that is to come. This template helps to clearly articulate the goals, users, and intended outcomes of the evaluation. It helps us 'keep the end in mind' by encouraging thoughtful consideration of how evaluation results will be applied and what specific actions or decisions they will inform.";
+
+// ── Variant B layout ───────────────────────────────────────────────────
+const S = {
+  root: {
+    background: "var(--vu-paper)",
+    display: "grid",
+    gridTemplateColumns: "16px 1fr",
+    width: "100%", height: "100%",
+  },
+  goldBar: {
+    background: "linear-gradient(180deg, var(--vu-gold-d), var(--vu-gold))",
+  },
+  inner: {
+    padding: "72px 100px 60px 80px",
+    display: "flex", flexDirection: "column",
+    overflow: "hidden",
+  },
+  eyebrow: {
+    display: "flex", alignItems: "center", gap: 14,
+    fontSize: 13, letterSpacing: "0.18em", textTransform: "uppercase",
+    color: "var(--vu-muted)", fontWeight: 700,
+  },
+  eyebrowGold: { color: "var(--vu-oak)" },
+  title: {
+    margin: "20px 0 0",
+    fontFamily: "var(--sans)",
+    fontSize: 110, lineHeight: 0.92, letterSpacing: "-0.045em",
+    fontWeight: 700, color: "var(--vu-black)",
+  },
+  intro: {
+    margin: "26px 0 0", maxWidth: 1180,
+    fontSize: 19, lineHeight: 1.55, color: "var(--vu-ink)",
+  },
+  body: { marginTop: 50, flex: 1, display: "flex", flexDirection: "column", gap: 30 },
+  section: {
+    display: "grid", gridTemplateColumns: "110px 1fr", gap: 36,
+    paddingTop: 24, borderTop: "1px solid var(--vu-rule)",
+  },
+  numCol: {
+    fontFamily: "var(--serif)", fontStyle: "italic", fontWeight: 600,
+    color: "var(--vu-gold-d)", fontSize: 64, lineHeight: 1,
+    letterSpacing: "-0.02em",
+  },
+  sectionTitle: {
+    fontFamily: "var(--sans)", fontSize: 22, fontWeight: 700,
+    color: "var(--vu-black)", margin: 0, letterSpacing: "-0.01em",
+  },
+  sectionLead: {
+    margin: "4px 0 0", fontSize: 17, color: "var(--vu-muted)", lineHeight: 1.4,
+  },
+  chipRow: { display: "flex", flexWrap: "wrap", gap: 12, marginTop: 16 },
+  sentence: {
+    margin: "14px 0 0", fontSize: 22, lineHeight: 1.5, color: "var(--vu-ink)",
+  },
+  twoUp: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 56 },
+  finalSection: {
+    display: "grid", gridTemplateColumns: "110px 1fr", gap: 36,
+    paddingTop: 24, borderTop: "1px solid var(--vu-rule)",
+    marginTop: 24,
+  },
+  finalSentence: {
+    margin: 0, fontSize: 26, lineHeight: 1.55,
+    fontFamily: "var(--sans)", fontWeight: 500, color: "var(--vu-ink)",
+  },
+  principles: {
+    marginTop: 36, padding: "24px 28px",
+    background: "var(--vu-cream)",
+    border: "1px solid var(--vu-sand)",
+    borderLeft: "5px solid var(--vu-gold-d)",
+    borderRadius: 4,
+    display: "grid", gridTemplateColumns: "180px 1fr", gap: 28,
+  },
+  principlesLabel: {
+    fontFamily: "var(--serif)", fontStyle: "italic",
+    fontSize: 22, color: "var(--vu-oak)", lineHeight: 1.2,
+  },
+  principlesCopy: { margin: 0, fontSize: 15, lineHeight: 1.55, color: "var(--vu-ink)" },
+};
+
+const chipOutlined = {
+  background: "transparent",
+  borderColor: "var(--vu-ink)",
+  borderWidth: 1.5,
+  fontWeight: 500,
+};
+
+function pad2(n) { return String(n).padStart(2, "0"); }
+
+function EvalPurposeSlide() {
+  const [s, set] = useWorksheetState("B");
+  const targetRef = useRef(null);
+
+  return (
+    <div ref={targetRef} className="ws" style={S.root}>
+      <ExportButton getTarget={() => targetRef.current} pageClass="print-slide" />
+
+      {/* Gold left bar */}
+      <div style={S.goldBar}></div>
+
+      <div style={S.inner}>
+        {/* Header */}
+        <header>
+          <div style={S.eyebrow}>
+            <span>Vanderbilt Peabody College</span>
+            <span style={{ opacity: 0.4 }}>—</span>
+            <span style={S.eyebrowGold}>LLO 8230: Program Evaluation</span>
+          </div>
+          <h1 style={S.title}>Evaluation Purpose.</h1>
+          <p style={S.intro}>{INTRO_COPY}</p>
+        </header>
+
+        <div style={S.body}>
+          {/* 01 — Primary purpose */}
+          <section style={S.section}>
+            <div style={S.numCol}>{pad2(1)}</div>
+            <div>
+              <h2 style={S.sectionTitle}>Primary purpose</h2>
+              <p style={S.sectionLead}>Select the evaluation type(s) that fit. Hover any chip for its definition.</p>
+              <div style={{ marginTop: 14 }}>
+                <CategoryGroup
+                  selected={s.purposeCategories}
+                  onToggle={(id) => set(prev => ({
+                    ...prev,
+                    purposeCategories: prev.purposeCategories.includes(id)
+                      ? prev.purposeCategories.filter(x => x !== id)
+                      : [...prev.purposeCategories, id],
+                  }))}
+                />
+              </div>
+              <p style={S.sentence}>
+                The primary purpose of this evaluation is to&nbsp;
+                <Blank value={s.purposeSentence}
+                       onChange={(x) => set({ purposeSentence: x })}
+                       placeholder="full purpose statement"
+                       minWidth={640} />.
+              </p>
+            </div>
+          </section>
+
+          {/* 02 — Intended users & use of findings */}
+          <section style={S.section}>
+            <div style={S.numCol}>{pad2(2)}</div>
+            <div style={S.twoUp}>
+              <div>
+                <h2 style={S.sectionTitle}>Intended users</h2>
+                <p style={S.sectionLead}>The intended users of the evaluation findings are:</p>
+                <div style={S.chipRow}>
+                  <EditableChipList
+                    items={s.users}
+                    onChange={(arr) => set({ users: arr })}
+                    placeholder={(i) => `user ${i + 1}`}
+                    chipStyle={chipOutlined}
+                    addLabel="Add user"
+                  />
+                </div>
+              </div>
+              <div>
+                <h2 style={S.sectionTitle}>Use of findings</h2>
+                <p style={S.sectionLead}>These findings will be used to inform decisions or next steps:</p>
+                <div style={S.chipRow}>
+                  <EditableChipList
+                    items={s.uses}
+                    onChange={(arr) => set({ uses: arr })}
+                    placeholder={(i) => `use ${i + 1}`}
+                    chipStyle={chipOutlined}
+                    addLabel="Add use"
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* 03 — Near-term aim & ultimate goal */}
+          <section style={S.finalSection}>
+            <div style={S.numCol}>{pad2(3)}</div>
+            <div>
+              <h2 style={S.sectionTitle}>Near-term aim &amp; ultimate goal</h2>
+              <p style={S.finalSentence}>
+                By completing this evaluation, we aim to&nbsp;
+                <Blank value={s.aim}
+                       onChange={(x) => set({ aim: x })}
+                       placeholder="near-term aim"
+                       minWidth={340} />
+                &nbsp;and ultimately to&nbsp;
+                <Blank value={s.ultimately}
+                       onChange={(x) => set({ ultimately: x })}
+                       placeholder="ultimate goal"
+                       minWidth={340} />.
+              </p>
+            </div>
+          </section>
+        </div>
+
+        {/* Operating principles callout */}
+        <aside style={S.principles}>
+          <div style={S.principlesLabel}>Operating<br/>Principles</div>
+          <p style={S.principlesCopy}>{OPERATING_PRINCIPLES}</p>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("app"));
+root.render(<EvalPurposeSlide />);
+</script>
+
+<!-- Letterbox scaling -->
+<script>
+(function () {
+  const frame = document.getElementById('slide-frame');
+  const W = 1920, H = 1080;
+  function fit() {
+    const s = Math.min(window.innerWidth / W, window.innerHeight / H);
+    frame.style.transform = `scale(${s})`;
+  }
+  window.addEventListener('resize', fit);
+  fit();
+})();
+</script>
+
+</body>
+</html>
